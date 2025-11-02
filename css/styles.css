@@ -736,6 +736,8 @@ section h2 {
   align-items: center;
   background: #000;
   z-index: 1;
+  /* La posición relativa es clave para los elementos UI */
+  position: relative; 
 }
 
 .game-info-icons{
@@ -1301,7 +1303,7 @@ section h2 {
 #gameCanvas {
     max-width: 100%;
     max-height: 100%;
-    display: none;
+    display: block;
 }
 
 #game-controls {
@@ -1422,3 +1424,118 @@ section h2 {
 .blocka-game-screen.game-active-bg {
     background-image: url('../img/Blocka/Fondo.jpg');
 }
+
+
+/* El contenedor del juego que se muestra */
+#playingScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none; /* Se activa con JS */
+    justify-content: center;
+    align-items: center;
+    background: #000; /* Fondo negro por si el canvas no ocupa todo */
+    z-index: 1;
+}
+
+#gameCanvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Interfaz de usuario sobre el juego */
+#game-ui {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+    font-family: 'Arial', sans-serif;
+    pointer-events: none; /* Para no interferir con el clic en el canvas */
+}
+
+#timer {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 8px 15px;
+    border-radius: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    border: 2px solid var(--primary1);
+}
+
+#restartBtn {
+    background: var(--primary2);
+    color: white;
+    border: 2px solid var(--primary4);
+    border-radius: 10px;
+    padding: 8px 20px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    pointer-events: auto; /* El botón sí debe ser clickeable */
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+#restartBtn:hover {
+    background: var(--primary1);
+    transform: scale(1.05);
+}
+
+/* Modales del juego (inicio y fin) */
+.game-modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(19, 14, 18, 0.9); /* Fondo del modal casi opaco */
+    border: 3px solid var(--primary1);
+    border-radius: 15px;
+    padding: 25px 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: var(--terciary5);
+    z-index: 10;
+    box-shadow: 0 0 20px rgba(158, 28, 126, 0.5);
+}
+
+.game-modal h2 {
+    margin-top: 0;
+    font-size: 28px;
+    color: var(--accent2);
+}
+
+.game-modal p {
+    font-size: 18px;
+    margin-bottom: 25px;
+}
+
+.game-modal button {
+    background: var(--accent3);
+    color: var(--secondary2);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 30px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.game-modal button:hover {
+    background: var(--accent1);
+    transform: scale(1.05);
+}
+
+/* Ocultar modal de inicio por defecto */
+#game-start-modal {
+    display: none;
+}
+
