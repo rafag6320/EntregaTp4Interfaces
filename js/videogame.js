@@ -1,3 +1,6 @@
+// =========================================
+// FUNCIONES DE UI (MENÚS, OVERLAYS)
+// =========================================
 
 function switchScreens(hideElement, showElement, duration = 300) {
     hideElement.style.opacity = "0";
@@ -16,23 +19,9 @@ function fullscreen() {
     const gameScreen = document.querySelector(".game-screen");
     if (!document.fullscreenElement) {
         gameScreen.requestFullscreen()
-            .then(() => {
-                gameScreen.style.width = "100vw";
-                gameScreen.style.height = "100vh";
-                gameScreen.style.maxWidth = "100vw";
-                gameScreen.style.maxHeight = "100vh";
-                gameScreen.style.margin = "0";
-                gameScreen.style.overflow = "hidden";
-            })
             .catch(err => console.log(`Error al entrar en fullscreen: ${err.message}`));
     } else {
-        document.exitFullscreen()
-            .then(() => {
-                gameScreen.style.width = "1080px";
-                gameScreen.style.height = "607px";
-                gameScreen.style.maxWidth = "1080px";
-                gameScreen.style.maxHeight = "607px";
-            });
+        document.exitFullscreen();
     }
 }
 
@@ -48,22 +37,78 @@ function activarCorazonToggle(selector) {
   });
 }
 
+// =========================================
+// INICIALIZACIÓN (DOM)
+// =========================================
+
 document.addEventListener("DOMContentLoaded", () => {
     activarCorazonToggle('#likeBtn');
+    
+    // --- Referencias a elementos del HTML principal ---
     const playButton = document.getElementById("playButton");
     const overlay = document.getElementById("gameOverlay"); 
     const playingScreen = document.getElementById("playingScreen"); 
-
     const previewImage = document.querySelector(".game-screen > img");
+    const startMenu = document.getElementById("startMenu");
+    const howToPlay = document.getElementById("howToPlay");
+    
+    // --- 1. INYECTAR EL NUEVO MENÚ DE SELECCIÓN DE PERSONAJE (SIMPLIFICADO) ---
+    const characterSelectHTML = `
+      <div class="start-menu" id="characterSelectMenu" style="display:none; z-index: 6;">
+        <div class="menu-content">
+          <h1>Elige tu Ficha</h1>
+          <button class="peg-select-btn" data-peg="terrorista">Terrorista</button>
+          <button class="peg-select-btn" data-peg="antiterrorista">Antiterrorista</button>
+        </div>
+      </div>
+    `;
+    const gameScreenContainer = document.querySelector(".game-screen");
+    if (gameScreenContainer) {
+        gameScreenContainer.insertAdjacentHTML('beforeend', characterSelectHTML);
+    } else {
+        document.body.insertAdjacentHTML('beforeend', characterSelectHTML); // Fallback
+    }
 
+    // --- 2. CONFIGURAR EL FLUJO DE MENÚS (SIMPLIFICADO) ---
+    const characterSelectMenu = document.getElementById("characterSelectMenu");
+
+    // Play (Overlay) -> Menú Inicio
     playButton.addEventListener("click", () => {
-        if (previewImage) {
-            previewImage.style.display = "none";
-        }
-        switchScreens(overlay, playingScreen, 300);
-        initGame();
+      if (previewImage) previewImage.style.display = "none";
+      switchScreens(overlay, startMenu, 300);
     });
 
+    // Menú Inicio (Jugar) -> Menú Selección de Ficha
+    document.getElementById("startGameBtn").addEventListener("click", () => {
+      switchScreens(startMenu, characterSelectMenu, 300);
+    });
+    
+    // Un solo listener para AMBOS botones de selección
+    characterSelectMenu.querySelectorAll('.peg-select-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            
+            // 1. Obtenemos la ficha del atributo 'data-peg' del botón
+            selectedPeg = event.target.dataset.peg; 
+            
+            // 2. (Opcional) Mostramos el aviso si es necesario
+            if (selectedPeg === 'antiterrorista') {
+                 console.log("Cargando 'antiterrorista'. Asegúrate de tener 'img/Videogame/antiterrorista.png'");
+            }
+            
+            // 3. Iniciamos el juego
+            startGame();
+        });
+    });
+
+    // --- 3. BOTONES "CÓMO JUGAR" ---
+    document.getElementById("howToPlayBtn").addEventListener("click", () => {
+      howToPlay.style.display = "flex";
+    });
+    document.getElementById("closeHowToPlay").addEventListener("click", () => {
+      howToPlay.style.display = "none";
+    });
+
+    // --- 4. BOTONES (COMPARTIR, FULLSCREEN) ---
     const shareBtn = document.getElementById("shareBtn");
     const closeShare = document.getElementById("closeShare");
     shareBtn.addEventListener("click", showShare);
@@ -74,14 +119,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     fullscreenBtn.addEventListener("click", fullscreen);
     document.addEventListener("fullscreenchange", () => {
-        const gameScreen = document.querySelector(".game-screen");
         if (!document.fullscreenElement) {
+            const gameScreen = document.querySelector(".game-screen");
             gameScreen.style.width = "1080px";
             gameScreen.style.height = "607px";
             gameScreen.style.maxWidth = "1080px";
             gameScreen.style.maxHeight = "607px";
         }
     });
+
+    // --- 5. INICIALIZAR EL JUEGO (PREPARAR CANVAS, ETC.) ---
+    initGameSetup();
 });
 
 
@@ -90,31 +138,32 @@ document.addEventListener("DOMContentLoaded", () => {
 // =========================================
 
 // --- Variables Globales del Juego ---
-let canvas, ctx; // Para el dibujo
-let board = []; // Array 2D que representa el tablero
-let draggingPeg = null; // Objeto {row, col} de la ficha que se arrastra
-let possibleMoves = []; // Array de {row, col} para resaltar movimientos válidos
+let canvas, ctx; 
+let board = []; 
+let draggingPeg = null; 
+let possibleMoves = []; 
 let gameOver = false;
-let timeRemaining; // Segundos restantes
-let timerInterval = null; // Referencia al intervalo del temporizador
-let mousePos = { x: 0, y: 0 }; // Posición del ratón en el canvas
+let timeRemaining; 
+let timerInterval = null; 
+let mousePos = { x: 0, y: 0 }; 
+let animationFrameId = null; 
 
-// --- Imágenes Globales ---
-let boardImage = null; // Imagen de fondo del tablero
-let pegImage = null;   // Imagen de la ficha (terrorista)
+// --- Variables de Imágenes y Selección ---
+let boardImage = null; 
+let pegImage = null;   
+let selectedPeg = 'terrorista'; // Valor por defecto
 
 // --- Constantes del Juego ---
-const CELL_SIZE = 70; // Tamaño de cada celda (en px)
-const PEG_SIZE = 60;  // Tamaño de la ficha (en px)
-const GAME_TIME_LIMIT = 300; // 5 minutos (en segundos)
+const CELL_SIZE = 70; 
+const PEG_SIZE = 60;  
+const GAME_TIME_LIMIT = 300; 
 
 // --- Diseño del Tablero ---
-// 1 = Ficha, 0 = Hueco, -1 = Zona no válida (fuera del tablero)
 const initialBoardLayout = [
   [-1, -1, 1, 1, 1, -1, -1],
   [-1, -1, 1, 1, 1, -1, -1],
   [ 1,  1, 1, 1, 1,  1,  1],
-  [ 1,  1, 1, 0, 1,  1,  1], // El 0 es el hueco inicial
+  [ 1,  1, 1, 0, 1,  1,  1], 
   [ 1,  1, 1, 1, 1,  1,  1],
   [-1, -1, 1, 1, 1, -1, -1],
   [-1, -1, 1, 1, 1, -1, -1]
@@ -123,90 +172,107 @@ const initialBoardLayout = [
 // ==================== INICIALIZACIÓN ====================
 
 /**
- * Prepara e inicia el juego.
- * Esta función es llamada cuando se pulsa "Jugar".
+ * Bucle de animación para las pistas (hints).
  */
-function initGame() {
+function animate() {
+    redrawGame(); 
+    animationFrameId = requestAnimationFrame(animate); 
+}
+
+/**
+ * Función llamada para MOSTRAR la pantalla del juego y CARGAR/RECARGAR las imágenes.
+ */
+function startGame() {
+    const playingScreen = document.getElementById("playingScreen");
+    const characterSelectMenu = document.getElementById("characterSelectMenu");
+    
+    // Oculta el menú de selección y muestra la pantalla de juego
+    switchScreens(characterSelectMenu, playingScreen, 300);
+    
+    // Carga las imágenes (tablero y ficha seleccionada) y luego llama a resetGame()
+    loadImagesAndStart();
+}
+
+/**
+ * Prepara el canvas y los menús del juego. Se llama UNA SOLA VEZ en DOMContentLoaded.
+ */
+function initGameSetup() {
   const playingScreen = document.getElementById("playingScreen");
   
   // Inserta dinámicamente el canvas y la UI (tiempo, reiniciar)
-  // en el div 'playingScreen'
+  // y el NUEVO MENÚ DE FIN DE JUEGO
   playingScreen.innerHTML = `
     <canvas id="gameCanvas" width="490" height="490"></canvas>
+    
     <div class="hud" id="game-ui">
       <span id="timer">Tiempo: 05:00</span>
       <button id="restartBtn">Reiniciar</button>
     </div>
+
+    <div class="game-modal" id="endMenu" style="display: none; z-index: 10;">
+        <h2 id="endMessage"></h2>
+        <p id="endPegCount"></p>
+        <button id="restartGameBtn">Jugar de nuevo</button>
+    </div>
   `;
 
-  // Obtiene las referencias al canvas y su contexto 2D
   canvas = document.getElementById("gameCanvas");
   ctx = canvas.getContext("2d");
 
   // ==================== EVENTOS (click / drag) ====================
   
-  // Al presionar el ratón
   canvas.addEventListener("mousedown", (e) => {
-    if (gameOver) return; // No hacer nada si el juego terminó
-    const { row, col } = getCellFromMouse(e); // Convierte coords a celda
+    if (gameOver) return; 
+    const { row, col } = getCellFromMouse(e); 
     
-    // Si hay una ficha (1) en esa celda
     if (board[row] && board[row][col] === 1) {
-        draggingPeg = { row, col }; // Marca esta ficha como "arrastrando"
-        
-        // Calcula y guarda los movimientos posibles desde esta celda
+        draggingPeg = { row, col }; 
         possibleMoves = calculatePossibleMoves(row, col);
-
-        // Guarda la posición inicial del ratón
+        
         const rect = canvas.getBoundingClientRect();
         mousePos.x = e.clientX - rect.left;
         mousePos.y = e.clientY - rect.top;
-        redrawGame(); // Redibuja para mostrar resaltados
+        
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        animate(); // Inicia el bucle de animación de pistas
     }
   });
 
-  // Al mover el ratón
   canvas.addEventListener("mousemove", (e) => {
-    if (!draggingPeg) return; // Solo si estamos arrastrando una ficha
+    if (!draggingPeg) return; 
     
-    // Actualiza la posición del ratón
     const rect = canvas.getBoundingClientRect();
     mousePos.x = e.clientX - rect.left;
     mousePos.y = e.clientY - rect.top;
-    
-    redrawGame(); // Redibuja para que la ficha siga al ratón
   });
 
 
-  // Al soltar el ratón
   canvas.addEventListener("mouseup", (e) => {
-    if (gameOver || !draggingPeg) return; // Solo si estábamos arrastrando
+    if (gameOver || !draggingPeg) return; 
     
-    // Obtiene la celda donde se soltó
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+
     const { row: dropRow, col: dropCol } = getCellFromMouse(e);
 
-    // Comprueba si el movimiento a esta celda es válido
     if (isValidMove(draggingPeg.row, draggingPeg.col, dropRow, dropCol)) {
-      // Si es válido, ejecuta el movimiento
       makeMove(draggingPeg.row, draggingPeg.col, dropRow, dropCol);
     }
 
-    draggingPeg = null; // Deja de arrastrar
-    possibleMoves = []; // Limpia los resaltados de movimientos
-    redrawGame(); // Redibuja el estado final del tablero
+    draggingPeg = null; 
+    possibleMoves = []; 
+    redrawGame(); 
 
-    // Comprueba si quedan movimientos posibles en *todo* el tablero
+    // Comprueba si quedan movimientos
     if (!hasMovesLeft()) {
-      clearInterval(timerInterval); // Para el tiempo
-      gameOver = true;
-      alert("¡No hay más movimientos posibles!");
+      checkWinAndShowMenu();
     }
   });
 
-  // Si el ratón sale del canvas mientras arrastra
   canvas.addEventListener("mouseleave", (e) => {
     if (draggingPeg) {
-        // Cancela el arrastre
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
         draggingPeg = null;
         possibleMoves = [];
         redrawGame(); 
@@ -214,32 +280,24 @@ function initGame() {
   });
   // =============================================================
 
-  // Asigna la función de reinicio al botón
+  // Asigna la función de reinicio al botón (REINICIO RÁPIDO)
   document.getElementById("restartBtn").onclick = resetGame;
-  
-  // Carga las imágenes y, cuando estén listas, llama a resetGame()
-  loadImagesAndStart({ rows: 7, cols: 7 });
 }
 
 // ==================== CARGA ASINCRÓNICA ====================
 
 /**
- * Carga las imágenes del juego (tablero y ficha) de forma asíncrona.
- * Muestra un texto de "Cargando..." mientras tanto.
+ * Carga las imágenes del juego (tablero y ficha seleccionada).
+ * Al terminar, llama a resetGame().
  */
-function loadImagesAndStart(config) {
+function loadImagesAndStart() {
   if (!ctx) return;
   
-  // Muestra "Cargando..." en el canvas
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#fff";
-  ctx.font = "24px sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("Cargando imágenes...", canvas.width / 2, canvas.height / 2);
-
   const boardUrl = "img/Videogame/chiquitapia.jpeg";
-  const pegUrl = "img/Videogame/terrorista.png";
+  // --- Lógica de Selección de Ficha ---
+  const pegUrl = selectedPeg === 'terrorista' 
+                 ? "img/Videogame/terrorista.png" 
+                 : "img/Videogame/antiterrorista.png"; // ¡Asegúrate que esta imagen exista!
 
   const boardImg = new Image();
   const pegImg = new Image();
@@ -247,12 +305,9 @@ function loadImagesAndStart(config) {
   let loadedCount = 0;
   const totalImages = 2; 
 
-  // Esta función se llama CADA VEZ que una imagen termina de cargar
   const onImageLoad = () => {
     loadedCount++;
-    // Si ya cargaron todas las imágenes
     if (loadedCount === totalImages) {
-      // Asigna las imágenes a las variables globales
       boardImage = boardImg;
       pegImage = pegImg;
       
@@ -261,11 +316,9 @@ function loadImagesAndStart(config) {
     }
   };
 
-  // Asigna el callback 'onload' a CADA imagen
   boardImg.onload = onImageLoad;
   pegImg.onload = onImageLoad;
 
-  // Establece el 'src' para disparar la carga
   boardImg.src = boardUrl;
   pegImg.src = pegUrl; 
 }
@@ -274,28 +327,19 @@ function loadImagesAndStart(config) {
 
 /**
  * Redibuja todo el estado del juego en el canvas.
- * Limpia y luego dibuja el tablero, las fichas y la ficha arrastrada.
  */
 function redrawGame() {
     if (!ctx) return;
-    // Limpia el canvas completamente
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Dibuja el fondo
     drawBoard();
-    
-    // Dibuja las fichas, huecos y resaltados
     drawPegs(); 
 
-    // Si estamos arrastrando una ficha
     if (draggingPeg) {
-        // Dibuja la ficha directamente en la posición del ratón
         const x = mousePos.x - PEG_SIZE / 2;
         const y = mousePos.y - PEG_SIZE / 2;
-        
-        ctx.globalAlpha = 0.75; // La hace semitransparente
+        ctx.globalAlpha = 0.75; 
         ctx.drawImage(pegImage, x, y, PEG_SIZE, PEG_SIZE);
-        ctx.globalAlpha = 1.0; // Restaura la opacidad
+        ctx.globalAlpha = 1.0; 
     }
 }
 
@@ -303,35 +347,32 @@ function redrawGame() {
  * Dibuja la imagen de fondo del tablero.
  */
 function drawBoard() {
-  if (!ctx || !boardImage) return; // Seguridad
+  if (!ctx || !boardImage) return; 
   ctx.drawImage(boardImage, 0, 0, canvas.width, canvas.height);
 }
 
 /**
- * Recorre el array 'board' y dibuja cada ficha, hueco o resaltado.
+ * Recorre el 'board' y dibuja cada ficha, hueco o pista animada.
  */
 function drawPegs() {
-  if (!ctx || !pegImage) return; // Seguridad
+  if (!ctx || !pegImage) return; 
   
   for (let row = 0; row < board.length; row++) {
     for (let col = 0; col < board[row].length; col++) {
       const value = board[row][col];
       
-      // Calcula la posición (x, y) en el canvas
       const x = col * CELL_SIZE + (CELL_SIZE - PEG_SIZE) / 2;
       const y = row * CELL_SIZE + (CELL_SIZE - PEG_SIZE) / 2;
       const centerX = col * CELL_SIZE + CELL_SIZE / 2;
       const centerY = row * CELL_SIZE + CELL_SIZE / 2;
 
-      if (value === 1) { // Si es una FICHA
-        // No la dibuja si es la que estamos arrastrando (se dibuja en redrawGame)
+      if (value === 1) { // FICHA
         if (draggingPeg && draggingPeg.row === row && draggingPeg.col === col) {
             continue; 
         }
         ctx.drawImage(pegImage, x, y, PEG_SIZE, PEG_SIZE);
 
-      } else if (value === 0) { // Si es un HUECO
-        // Dibuja un círculo oscuro para el hueco
+      } else if (value === 0) { // HUECO
         ctx.beginPath();
         ctx.arc(centerX, centerY, PEG_SIZE / 3, 0, 2 * Math.PI, false); 
         ctx.fillStyle = '#202020';
@@ -342,20 +383,29 @@ function drawPegs() {
         ctx.lineWidth = 2;
         ctx.stroke();
         
-        // Comprueba si este hueco es un movimiento posible
         const isPossible = possibleMoves.some(move => move.row === row && move.col === col);
         
-        if (isPossible) { // Si SÍ es posible, dibuja un resaltado amarillo
+        // --- PISTA ANIMADA (HINT) ---
+        if (isPossible) { 
+            const pulse = (Math.sin(Date.now() / 200) + 1) / 2; 
+
+            const minRadius = PEG_SIZE / 2.8;
+            const maxRadius = PEG_SIZE / 2.2;
+            const currentRadius = minRadius + (pulse * (maxRadius - minRadius));
+
+            const minOpacity = 0.4;
+            const maxOpacity = 0.8;
+            const currentOpacity = minOpacity + (pulse * (maxOpacity - minOpacity));
+
             ctx.beginPath();
-            ctx.arc(centerX, centerY, PEG_SIZE / 2.5, 0, 2 * Math.PI, false); 
-            ctx.fillStyle = 'rgba(255, 230, 0, 0.45)';
+            ctx.arc(centerX, centerY, currentRadius, 0, 2 * Math.PI, false); 
+            ctx.fillStyle = `rgba(255, 230, 0, ${currentOpacity})`;
             ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 230, 0, 0.8)';
+            ctx.strokeStyle = 'rgba(255, 230, 0, 0.9)';
             ctx.lineWidth = 2;
             ctx.stroke();
         }
       }
-      // Si es -1 (fuera de tablero), no dibuja nada.
     }
   }
 }
@@ -366,35 +416,38 @@ function drawPegs() {
  * Reinicia el juego a su estado inicial.
  */
 function resetGame() {
-  // Copia el layout inicial para no modificar el original
   board = initialBoardLayout.map(row => [...row]);
   draggingPeg = null;
   possibleMoves = [];
   gameOver = false;
   timeRemaining = GAME_TIME_LIMIT;
 
-  clearInterval(timerInterval); // Limpia cualquier temporizador anterior
-  updateTimerDisplay(); // Muestra el tiempo inicial
-  redrawGame(); // Dibuja el tablero inicial
-  startTimer(); // Inicia el nuevo temporizador
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+  animationFrameId = null;
+  clearInterval(timerInterval); 
+
+  updateTimerDisplay(); 
+  redrawGame(); 
+  startTimer(); 
 }
 
 /**
  * Inicia el temporizador de cuenta atrás.
  */
 function startTimer() {
-    clearInterval(timerInterval); // Asegura que no haya dos temporizadores
+    clearInterval(timerInterval); 
     timerInterval = setInterval(() => {
         if (timeRemaining <= 0) {
           clearInterval(timerInterval);
           gameOver = true;
-          alert("¡Tiempo agotado!");
+          // --- DERROTA POR TIEMPO ---
+          showEndMenu(false, countPegs());
           return;
         }
 
-        timeRemaining--; // Resta un segundo
-        updateTimerDisplay(); // Actualiza la UI
-    }, 1000); // Se ejecuta cada segundo
+        timeRemaining--; 
+        updateTimerDisplay(); 
+    }, 1000);
 }
 
 /**
@@ -404,32 +457,23 @@ function updateTimerDisplay() {
     const timerDisplay = document.getElementById("timer");
     if (!timerDisplay) return;
     
-    // Calcula minutos y segundos
-    const minutes = Math.floor(timeRemaining / 60)
-      .toString()
-      .padStart(2, "0"); // Añade un 0 a la izquierda si es necesario (ej. "05")
+    const minutes = Math.floor(timeRemaining / 60).toString().padStart(2, "0");
     const seconds = (timeRemaining % 60).toString().padStart(2, "0");
     timerDisplay.textContent = `Tiempo: ${minutes}:${seconds}`;
 }
 
-// ==================== MOVIMIENTOS ====================
+// ==================== MOVIMIENTOS Y REGLAS ====================
+
 /**
  * Calcula todos los movimientos válidos desde una ficha específica.
  */
 function calculatePossibleMoves(r, c) {
     const moves = [];
-    // Direcciones de salto (2 celdas de distancia)
-    const directions = [
-        [-2, 0], // Arriba
-        [2, 0],  // Abajo
-        [0, -2], // Izquierda
-        [0, 2]   // Derecha
-    ];
+    const directions = [ [-2, 0], [2, 0], [0, -2], [0, 2] ];
     
     for (const [dr, dc] of directions) {
         const destRow = r + dr;
         const destCol = c + dc;
-        // Reutiliza la lógica de validación
         if (isValidMove(r, c, destRow, destCol)) {
             moves.push({ row: destRow, col: destCol });
         }
@@ -437,74 +481,134 @@ function calculatePossibleMoves(r, c) {
     return moves;
 }
 
-
 /**
- * Convierte las coordenadas (x, y) del clic del ratón en la celda (fila, columna) del tablero.
+ * Convierte las coordenadas (x, y) del clic a la celda (fila, columna).
  */
 function getCellFromMouse(e) {
-  const rect = canvas.getBoundingClientRect(); // Obtiene la posición del canvas
-  const x = e.clientX - rect.left; // Posición X relativa al canvas
-  const y = e.clientY - rect.top; // Posición Y relativa al canvas
+  const rect = canvas.getBoundingClientRect(); 
+  const x = e.clientX - rect.left; 
+  const y = e.clientY - rect.top; 
   const col = Math.floor(x / CELL_SIZE);
   const row = Math.floor(y / CELL_SIZE);
   return { row, col };
 }
 
 /**
- * Comprueba si un movimiento de (r1, c1) a (r2, c2) es válido.
+ * Comprueba si un movimiento es válido.
  */
 function isValidMove(r1, c1, r2, c2) {
-  // 1. El destino debe ser un hueco (0) y estar dentro del tablero
   if (!board[r2] || board[r2][c2] !== 0) return false;
 
   const dr = r2 - r1;
   const dc = c2 - c1;
 
-  // 2. Comprueba salto vertical (2 celdas)
   if (Math.abs(dr) === 2 && dc === 0) {
-    const midRow = r1 + dr / 2; // Fila de la ficha que saltamos
-    return board[midRow][c1] === 1; // Debe haber una ficha (1) para saltar
+    const midRow = r1 + dr / 2; 
+    return board[midRow][c1] === 1; 
   }
-  // 3. Comprobueba salto horizontal (2 celdas)
   else if (Math.abs(dc) === 2 && dr === 0) {
-    const midCol = c1 + dc / 2; // Columna de la ficha que saltamos
-    return board[r1][midCol] === 1; // Debe haber una ficha (1) para saltar
+    const midCol = c1 + dc / 2; 
+    return board[r1][midCol] === 1; 
   }
   
-  // Si no es ninguno de los anteriores, no es válido
   return false;
 }
 
 /**
  * Ejecuta el movimiento en el array 'board'.
- * Actualiza 3 celdas: origen, medio y destino.
  */
 function makeMove(r1, c1, r2, c2) {
-  // Calcula la celda de en medio (la que es "comida")
   const midRow = (r1 + r2) / 2;
   const midCol = (c1 + c2) / 2;
   
-  board[r1][c1] = 0; // Origen se vuelve hueco
-  board[midRow][midCol] = 0; // Ficha saltada se vuelve hueco
-  board[r2][c2] = 1; // Destino se vuelve ficha
+  board[r1][c1] = 0; 
+  board[midRow][midCol] = 0; 
+  board[r2][c2] = 1; 
 }
 
 /**
  * Comprueba si queda algún movimiento válido en *todo* el tablero.
  */
 function hasMovesLeft() {
-  // Recorre cada celda del tablero
   for (let r = 0; r < board.length; r++) {
     for (let c = 0; c < board[r].length; c++) {
-      // Si hay una ficha (1)
       if (board[r][c] === 1) { 
-        // Calcula sus movimientos. Si tiene al menos 1, el juego no ha terminado.
         if (calculatePossibleMoves(r, c).length > 0) {
             return true;
         }
       }
     }
   }
-  // Si termina el bucle sin encontrar movimientos, devuelve false.
   return false;
+}
+
+// ==================== LÓGICA DE VICTORIA/DERROTA ====================
+
+/**
+ * Cuenta cuántas fichas (1) quedan en el tablero.
+ */
+function countPegs() {
+    let count = 0;
+    for (let r = 0; r < board.length; r++) {
+        for (let c = 0; c < board[r].length; c++) {
+            if (board[r][c] === 1) count++;
+        }
+    }
+    return count;
+}
+
+/**
+ * Se llama cuando no quedan más movimientos.
+ * Decide si es victoria (1 ficha) o derrota (>1 ficha).
+ */
+function checkWinAndShowMenu() {
+    if (gameOver) return; // Evita que se llame múltiples veces
+
+    clearInterval(timerInterval);
+    gameOver = true;
+    
+    const pegCount = countPegs();
+    if (pegCount === 1) {
+        // --- VICTORIA ---
+        showEndMenu(true, pegCount);
+    } else {
+        // --- DERROTA (SIN MOVIMIENTOS) ---
+        showEndMenu(false, pegCount);
+    }
+}
+
+/**
+ * Muestra el menú final de Victoria o Derrota.
+ */
+function showEndMenu(win, pegCount) {
+    const endMenu = document.getElementById("endMenu");
+    const endMessage = document.getElementById("endMessage");
+    const endPegCount = document.getElementById("endPegCount");
+    const playingScreen = document.getElementById("playingScreen"); 
+
+    if (win) {
+        endMessage.textContent = "🏆 ¡Felicidades, has ganado! 🏆";
+        endPegCount.textContent = "Has dejado solo 1 ficha en el tablero.";
+    } else {
+        endMessage.textContent = "💀 ¡Has perdido! 💀";
+        if (timeRemaining <= 0) {
+            endPegCount.textContent = `Se acabó el tiempo. Te quedaron ${pegCount} fichas.`;
+        } else {
+            endPegCount.textContent = `No quedan más movimientos. Te quedaron ${pegCount} fichas.`;
+        }
+    }
+    
+    endMenu.style.display = "flex";
+
+    // Configura el botón para volver al menú de selección de personaje
+    document.getElementById("restartGameBtn").onclick = () => {
+        endMenu.style.display = "none";
+        const characterSelectMenu = document.getElementById("characterSelectMenu");
+        
+        // Oculta la pantalla de juego y muestra la de selección
+        switchScreens(playingScreen, characterSelectMenu, 300);
+        
+        // Resetea el tablero para la próxima vez que jueguen
+        resetGame(); 
+    };
 }

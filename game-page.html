@@ -1,29 +1,40 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <!-- ===========================
+       METADATOS Y ESTILOS
+  ============================ -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Plataforma de Juegos</title>
+  <!-- CSS: Se mantiene tu hoja de estilos -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
 
+  <!-- ===========================
+       ENCABEZADO PRINCIPAL
+  ============================ -->
   <header>
+    <!-- Botón Hamburguesa -->
     <button id="menu-toggle">
       <span class="hamburger-icon"></span>
     </button>
 
+    <!-- Barra de Búsqueda -->
     <div class="search">
       <input type="text" placeholder="Buscar juegos...">
       <button>Buscar</button>
     </div>
 
+    <!-- Botón Usuario -->
     <button id="user" class="user">
       <span>Hola Marcelo👋</span>
       <img src="img/ProfilePictures/images.jpeg" alt="Avatar">
     </button>
 
+    <!-- Menú del Usuario -->
     <div id="user-menu" class="user-menu">
       <ul>
         <li>Perfil</li>
@@ -86,7 +97,11 @@
     </div>
   </header>
 
+  <!-- ===========================
+       CONTENIDO PRINCIPAL
+  ============================ -->
   <div class="layout">
+    <!-- ====== MENÚ LATERAL ====== -->
     <aside id="menuham">
       <div class="menuham-inner">
         <button class="nav-btn active inicio" href="index.html">
@@ -193,10 +208,13 @@
       </div>
     </aside>
 
+    <!-- Overlay -->
     <div id="overlay" class="overlay"></div>
 
+    <!-- ====== SECCIÓN CENTRAL ====== -->
     <main class="main-games">
 
+      <!-- ====== BREADCRUMB ====== -->
       <div class="breadcrumb">
         <div class="breadcrumb-categoria">
           <a href="index.html">Juegos</a>
@@ -211,9 +229,12 @@
         </div>
       </div>
 
+      <!-- ====== PANTALLA DEL VIDEOJUEGO ====== -->
       <div class="game-container">
         <div class="game-placeholder">
           <div class="game-screen">
+
+            
             <img src="img/Videogame/Videogame-preview.jpg" alt="Pantalla del juego">
             <div id="shareContainer" class="share-container">
               <h3>Compartir este juego</h3>
@@ -228,10 +249,57 @@
                 </a>
               </div>
             </div>
-            
+
+   <div class="start-menu" id="startMenu" style="display:none;">
+  <div class="menu-content">
+    <h1>¡Bienvenido al Juego!</h1>
+    <button id="startGameBtn">Jugar</button>
+    <button id="howToPlayBtn">Cómo jugar</button>
+  </div>
+</div>
+
+<!-- VENTANA DE "CÓMO JUGAR" -->
+<div class="how-to-play" id="howToPlay" style="display:none;">
+  <div class="how-to-play-box">
+    <h2>Cómo jugar</h2>
+    <p>Selecciona una ficha y salta sobre otra en línea recta hasta un espacio vacío. El objetivo es dejar solo una ficha en el tablero.</p>
+    <button id="closeHowToPlay">Cerrar</button>
+  </div>
+</div>
+
+<div class="game-show" id="playingScreen"></div>
+<!-- NUEVO MENÚ DE INICIO -->
+<div class="start-menu" id="startMenu" style="display:none;">
+  <div class="menu-content">
+    <h1>¡Bienvenido al Juego!</h1>
+    <button id="startGameBtn">Jugar</button>
+    <button id="howToPlayBtn">Cómo jugar</button>
+  </div>
+</div>
+
+<!-- VENTANA DE "CÓMO JUGAR" -->
+<div class="how-to-play" id="howToPlay" style="display:none;">
+  <div class="how-to-play-box">
+    <h2>Cómo jugar</h2>
+    <p>Selecciona una ficha y salta sobre otra en línea recta hasta un espacio vacío. El objetivo es dejar solo una ficha en el tablero.</p>
+    <button id="closeHowToPlay">Cerrar</button>
+  </div>
+</div>
+
+<div class="game-show" id="playingScreen"></div>
+
+            <!-- ===== INICIO DE LA MODIFICACIÓN ===== -->
+            <!-- Aquí es donde se renderizará el juego -->
             <div class="game-show" id="playingScreen">
+              <!-- El canvas reemplaza a la imagen estática -->
+              <canvas id="pegSolitaireCanvas" width="1080" height="607">
+                Tu navegador no soporta Canvas.
+              </canvas>
+                </div>
               </div>
-            
+            </div>
+            <!-- ===== FIN DE LA MODIFICACIÓN ===== -->
+
           </div>
 
           <div class="game-screen-info">
@@ -253,6 +321,7 @@
         </div>
       </div>
 
+      <!-- ====== DESCRIPCIÓN DEL JUEGO ====== -->
       <section class="game-info-container">
         <div class="game-info">
           <h2>Peg Solitaire: Counter Strike</h2>
@@ -299,6 +368,7 @@
         </div>
       </section>
 
+      <!-- ====== COMENTARIOS ====== -->
       <section class="comments-section">
         <div class="comment-header">
           <h2>Comentarios</h2>
@@ -316,6 +386,7 @@
           </div>
         </div>
 
+        <!-- Comentarios existentes -->
         <div class="comment">
           <div class="comment-profile">
             <img src="img/ProfilePictures/1.png" alt="Avatar">
@@ -391,6 +462,9 @@
   </div>
 
 
+  <!-- ===========================
+       PIE DE PÁGINA
+  ============================ -->
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-column">
@@ -418,7 +492,7 @@
     <div class="social-icons">
       <a href="#"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#B9B9B9" d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95"/></svg></i></a>
       <a href="#"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#B9B9B9" d="M10.488 14.651L15.25 21h7l-7.858-10.478L20.93 3h-2.65l-5.117 5.886L8.75 3h-7l7.51 10.015L2.32 21h2.65zM16.25 19L5.75 5h2l10.5 14z"/></svg></a>
-      <a href="#"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#B9B9B9" d="m10 15l5.19-3L10 9zm11.56-7.83c.13.47.22 1.1.28 1.9c.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83c-.25.9-.83 1.48-1.73 1.73c-.47.13-1.33.22-2.65.28c-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44c-.9-.25-1.48-.83-1.73-1.73c-.13-.47-.22-1.1-.28-1.9c-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83c.25-.9.83-1.48 1.73-1.73c.47-.13 1.33.22 2.65-.28c1.3-.07 2.49-.1 3.59.1L12 5c4.19 0 6.8.16 7.83.44c.9.25 1.48.83 1.73 1.73"/></svg></a>
+      <a href="#"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#B9B9B9" d="m10 15l5.19-3L10 9zm11.56-7.83c.13.47.22 1.1.28 1.9c.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83c-.25.9-.83 1.48-1.73 1.73c-.47.13-1.33.22-2.65.28c-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44c-.9-.25-1.48-.83-1.73-1.73c-.13-.47-.22-1.1-.28-1.9c-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83c.25-.9.83-1.48 1.73-1.73c.47-.13 1.33-.22 2.65-.28c1.3-.07 2.49-.1 3.59.1L12 5c4.19 0 6.8.16 7.83.44c.9.25 1.48.83 1.73 1.73"/></svg></a>
       <a href="#"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#B9B9B9" d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4zm9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3"/></svg></a>
       <a href="#"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#B9B9B9" d="M16.6 5.82s.51.5 0 0A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6c0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64c0 3.33 2.76 5.7 5.69 5.7c3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48"/></svg></a>
     </div>
@@ -431,8 +505,10 @@
 </footer>
 
 
-<script src="js/script.js"></script>
-<script src="js/videogame.js"></script>
-
+  <!-- ===========================
+       SCRIPTS
+  ============================ -->
+  <script src="js/script.js"></script> 
+  <script src="js/videogame.js"></script>
 </body>
 </html>
