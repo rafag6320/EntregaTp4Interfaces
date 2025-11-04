@@ -47,7 +47,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- Referencias a elementos del HTML principal ---
     const playButton = document.getElementById("playButton");
     const overlay = document.getElementById("gameOverlay"); 
-    const playingScreen = document.getElementById("playingScreen"); 
     const previewImage = document.querySelector(".game-screen > img");
     const startMenu = document.getElementById("startMenu");
     const howToPlay = document.getElementById("howToPlay");
@@ -64,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     const gameScreenContainer = document.querySelector(".game-screen");
     if (gameScreenContainer) {
-        gameScreenContainer.insertAdjacentHTML('beforeend', characterSelectHTML);
+        gameScreenContainer.insertAdjacentHTML('beforeend', characterSelectHTML); // InsertAdjacentHTML inyecta en el elemento seleccionado
     } else {
         document.body.insertAdjacentHTML('beforeend', characterSelectHTML); // Fallback
     }
@@ -74,13 +73,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Play (Overlay) -> Menú Inicio
     playButton.addEventListener("click", () => {
-      if (previewImage) previewImage.style.display = "none";
-      switchScreens(overlay, startMenu, 300);
+      if (previewImage) previewImage.style.display = "none"; // Oculta la imagen de vista previa si es que existe una
+      switchScreens(overlay, startMenu, 300); // Cambia la pantalla del overlay al menú de inicio
     });
 
     // Menú Inicio (Jugar) -> Menú Selección de Ficha
     document.getElementById("startGameBtn").addEventListener("click", () => {
-      switchScreens(startMenu, characterSelectMenu, 300);
+      switchScreens(startMenu, characterSelectMenu, 300); // Cuandos se toca jugar, va al menú de selección de ficha
     });
     
     // Un solo listener para AMBOS botones de selección
@@ -90,11 +89,6 @@ document.addEventListener("DOMContentLoaded", () => {
             // 1. Obtenemos la ficha del atributo 'data-peg' del botón
             selectedPeg = event.target.dataset.peg; 
             
-            // 2. (Opcional) Mostramos el aviso si es necesario
-            if (selectedPeg === 'antiterrorista') {
-                 console.log("Cargando 'antiterrorista'. Asegúrate de tener 'img/Videogame/antiterrorista.png'");
-            }
-            
             // 3. Iniciamos el juego
             startGame();
         });
@@ -102,10 +96,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- 3. BOTONES "CÓMO JUGAR" ---
     document.getElementById("howToPlayBtn").addEventListener("click", () => {
-      howToPlay.style.display = "flex";
+      howToPlay.style.display = "flex"; //Mostrar el howToPlay  
     });
     document.getElementById("closeHowToPlay").addEventListener("click", () => {
-      howToPlay.style.display = "none";
+      howToPlay.style.display = "none"; //Ocultar el howToPlay
     });
 
     // --- 4. BOTONES (COMPARTIR, FULLSCREEN) ---
@@ -159,6 +153,9 @@ const PEG_SIZE = 60;
 const GAME_TIME_LIMIT = 300; 
 
 // --- Diseño del Tablero ---
+// -1 = fuera del tablero
+//  0 = lugar vacío
+//  1 = ficha presente
 const initialBoardLayout = [
   [-1, -1, 1, 1, 1, -1, -1],
   [-1, -1, 1, 1, 1, -1, -1],
@@ -199,7 +196,7 @@ function startGame() {
 function initGameSetup() {
   const playingScreen = document.getElementById("playingScreen");
   
-  // Inserta dinámicamente el canvas y la UI (tiempo, reiniciar)
+  // Inserta el canvas y la inerfaz 
   // y el NUEVO MENÚ DE FIN DE JUEGO
   playingScreen.innerHTML = `
     <canvas id="gameCanvas" width="490" height="490"></canvas>
@@ -255,8 +252,9 @@ function initGameSetup() {
 
     const { row: dropRow, col: dropCol } = getCellFromMouse(e);
 
+    // Si el movimiento es valido, hace el movimiento
     if (isValidMove(draggingPeg.row, draggingPeg.col, dropRow, dropCol)) {
-      makeMove(draggingPeg.row, draggingPeg.col, dropRow, dropCol);
+      makeMove(draggingPeg.row, draggingPeg.col, dropRow, dropCol); 
     }
 
     draggingPeg = null; 
@@ -281,10 +279,11 @@ function initGameSetup() {
   // =============================================================
 
   // Asigna la función de reinicio al botón (REINICIO RÁPIDO)
-  document.getElementById("restartBtn").onclick = resetGame;
+  document.getElementById("restartBtn").onclick = () => {
+      switchScreens(playingScreen, characterSelectMenu, 0);
+      resetGame(); 
+  };
 }
-
-// ==================== CARGA ASINCRÓNICA ====================
 
 /**
  * Carga las imágenes del juego (tablero y ficha seleccionada).
@@ -293,11 +292,11 @@ function initGameSetup() {
 function loadImagesAndStart() {
   if (!ctx) return;
   
-  const boardUrl = "img/Videogame/chiquitapia.jpeg";
-  // --- Lógica de Selección de Ficha ---
+  const boardUrl = "img/Videogame/peg-background.jpg";
+  // Elige una de las fichas
   const pegUrl = selectedPeg === 'terrorista' 
                  ? "img/Videogame/terrorista.png" 
-                 : "img/Videogame/antiterrorista.png"; // ¡Asegúrate que esta imagen exista!
+                 : "img/Videogame/antiterrorista.png"; 
 
   const boardImg = new Image();
   const pegImg = new Image();
@@ -343,36 +342,83 @@ function redrawGame() {
     }
 }
 
-/**
- * Dibuja la imagen de fondo del tablero.
- */
+
+// Dibuja el tablero con forma de cruz (+)
 function drawBoard() {
-  if (!ctx || !boardImage) return; 
-  ctx.drawImage(boardImage, 0, 0, canvas.width, canvas.height);
+  if (!ctx || !boardImage) return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+
+  // Ajusta el grosor de los brazos de la cruz (0 a 1)
+  // Si bajás el número, los brazos se hacen más finos
+  const tInset = 0.28;
+  const tOutset = 1 - tInset;
+
+  // Metodo auxiliar que crea la forma de cruz
+  function makePlus(ctx, W, H, t1, t2) {
+    ctx.beginPath();
+    ctx.moveTo(W * t1, 0);
+    ctx.lineTo(W * t2, 0);
+    ctx.lineTo(W, H * t1);
+    ctx.lineTo(W, H * t2);
+    ctx.lineTo(W * t2, H);
+    ctx.lineTo(W * t1, H);
+    ctx.lineTo(0, H * t2);
+    ctx.lineTo(0, H * t1);
+    ctx.closePath();
+  }
+
+  // Dibujamos la imagen de fondo recortada dentro de la cruz
+  ctx.save();
+  makePlus(ctx, w, h, tInset, tOutset);
+  ctx.clip();
+
+  // Ajusta la imagen para que cubra todo el canvas
+  const imgW = boardImage.naturalWidth || boardImage.width;
+  const imgH = boardImage.naturalHeight || boardImage.height;
+  const imgRatio = imgW / imgH;
+  const canvasRatio = w / h;
+  let sx = 0, sy = 0, sW = imgW, sH = imgH;
+
+  if (imgRatio > canvasRatio) {
+    // Si la imagen es más ancha, cortamos los costados
+    sW = Math.round(imgH * canvasRatio);
+    sx = Math.round((imgW - sW) / 2);
+  } else {
+    // Si es más alta, cortamos arriba y abajo
+    sH = Math.round(imgW / canvasRatio);
+    sy = Math.round((imgH - sH) / 2);
+  }
+
+  ctx.drawImage(boardImage, sx, sy, sW, sH, 0, 0, w, h);
+  ctx.restore();
 }
 
-/**
- * Recorre el 'board' y dibuja cada ficha, hueco o pista animada.
- */
+
+// Recorre el 'board' y dibuja cada ficha, hueco o pista animada.
 function drawPegs() {
   if (!ctx || !pegImage) return; 
   
+  // Recorre el tablero
   for (let row = 0; row < board.length; row++) {
     for (let col = 0; col < board[row].length; col++) {
       const value = board[row][col];
       
+      // Calcula la position de la celda
       const x = col * CELL_SIZE + (CELL_SIZE - PEG_SIZE) / 2;
       const y = row * CELL_SIZE + (CELL_SIZE - PEG_SIZE) / 2;
       const centerX = col * CELL_SIZE + CELL_SIZE / 2;
       const centerY = row * CELL_SIZE + CELL_SIZE / 2;
 
-      if (value === 1) { // FICHA
+      if (value === 1) { // Si es una ficha
         if (draggingPeg && draggingPeg.row === row && draggingPeg.col === col) {
             continue; 
         }
+
         ctx.drawImage(pegImage, x, y, PEG_SIZE, PEG_SIZE);
 
-      } else if (value === 0) { // HUECO
+      } else if (value === 0) { // Si es un hueco
         ctx.beginPath();
         ctx.arc(centerX, centerY, PEG_SIZE / 3, 0, 2 * Math.PI, false); 
         ctx.fillStyle = '#202020';
@@ -383,9 +429,10 @@ function drawPegs() {
         ctx.lineWidth = 2;
         ctx.stroke();
         
+        // Checkea que haya algun movimiento posible en esta celda
         const isPossible = possibleMoves.some(move => move.row === row && move.col === col);
         
-        // --- PISTA ANIMADA (HINT) ---
+        // Pistas con animacion 
         if (isPossible) { 
             const pulse = (Math.sin(Date.now() / 200) + 1) / 2; 
 
@@ -515,7 +562,7 @@ function isValidMove(r1, c1, r2, c2) {
 }
 
 /**
- * Ejecuta el movimiento en el array 'board'.
+ * Hace el movimiento en board.
  */
 function makeMove(r1, c1, r2, c2) {
   const midRow = (r1 + r2) / 2;
@@ -527,7 +574,7 @@ function makeMove(r1, c1, r2, c2) {
 }
 
 /**
- * Comprueba si queda algún movimiento válido en *todo* el tablero.
+ * Checkea si queda un movimiento valido.
  */
 function hasMovesLeft() {
   for (let r = 0; r < board.length; r++) {
@@ -542,10 +589,10 @@ function hasMovesLeft() {
   return false;
 }
 
-// ==================== LÓGICA DE VICTORIA/DERROTA ====================
+// ==================== Logica de Victoria/Derrota ====================
 
 /**
- * Cuenta cuántas fichas (1) quedan en el tablero.
+ * Cuenta cuántas fichas quedan en el tablero.
  */
 function countPegs() {
     let count = 0;
@@ -587,10 +634,10 @@ function showEndMenu(win, pegCount) {
     const playingScreen = document.getElementById("playingScreen"); 
 
     if (win) {
-        endMessage.textContent = "🏆 ¡Felicidades, has ganado! 🏆";
-        endPegCount.textContent = "Has dejado solo 1 ficha en el tablero.";
+        endMessage.textContent = "🏆 ¡Felicidades, ganaste! 🏆";
+        endPegCount.textContent = "Dejaste solo 1 ficha en el tablero.";
     } else {
-        endMessage.textContent = "💀 ¡Has perdido! 💀";
+        endMessage.textContent = "💀 ¡Perdiste! 💀";
         if (timeRemaining <= 0) {
             endPegCount.textContent = `Se acabó el tiempo. Te quedaron ${pegCount} fichas.`;
         } else {

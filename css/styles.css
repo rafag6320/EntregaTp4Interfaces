@@ -1436,7 +1436,7 @@ section h2 {
     display: none; /* Se activa con JS */
     justify-content: center;
     align-items: center;
-    background-image: url('../img/Videogame/fondo.jpg');
+    background-image: url('../img/Videogame/background.jpg');
     background-size: cover;
     z-index: 1;
 }

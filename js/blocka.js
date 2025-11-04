@@ -36,8 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   const LEVELS = [
-    { level: 1, filter: null, rows: 2, cols: 2, maxTime: 100000 },
-    { level: 2, filter: 'brightness', rows: 4, cols: 4, maxTime: 100000 },
+    { level: 1, filter: null, rows: 2, cols: 2, maxTime: 600 },
+    { level: 2, filter: 'brightness', rows: 4, cols: 4, maxTime: 300 },
     { level: 3, filter: 'grayscale', rows: 6, cols: 6, maxTime: 120 },
     { level: 4, filter: 'negative', rows: 8, cols: 8, maxTime: 60 },
   ];
@@ -315,30 +315,43 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==============================
   function startTimer() {
     stopTimer();
-    seconds = 0;
-    timerDisplay.textContent = '00:00';
 
     const config = LEVELS.find((l) => l.level === currentLevel);
-    const maxTime = config?.maxTime ?? 9999;
+    let remaining = config?.maxTime ?? 9999;
+
+    // Mostrar el tiempo inicial
+    const minutes = Math.floor(remaining / 60).toString().padStart(2, '0');
+    const seconds = (remaining % 60).toString().padStart(2, '0');
+    timerDisplay.textContent = `${minutes}:${seconds}`;
+    timerDisplay.style.color = 'white';
 
     timerInterval = setInterval(() => {
-      seconds++;
-
-      const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
-      const segsRest = (seconds % 60).toString().padStart(2, '0');
-      timerDisplay.textContent = `${minutes}:${segsRest}`;
-
-      if (seconds >= maxTime && isGameActive) {
-        loseLevel();
+      if (!isGameActive) {
+        clearInterval(timerInterval);
+        return;
       }
 
-      if (maxTime - seconds <= 30) {
+      remaining--;
+
+      const minutes = Math.floor(remaining / 60).toString().padStart(2, '0');
+      const seconds = (remaining % 60).toString().padStart(2, '0');
+      timerDisplay.textContent = `${minutes}:${seconds}`;
+
+      // Cambia a rojo cuando quedan 30 segundos o menos
+      if (remaining <= 30) {
         timerDisplay.style.color = 'red';
       } else {
         timerDisplay.style.color = 'white';
       }
+
+      // Si llega a 0, se termina el nivel
+      if (remaining <= 0) {
+        clearInterval(timerInterval);
+        loseLevel();
+      }
     }, 1000);
   }
+
 
   function stopTimer() {
     clearInterval(timerInterval);
